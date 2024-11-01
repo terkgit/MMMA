@@ -17,6 +17,12 @@ MyMediaMouseAssist provides a convenient way to control your system volume using
   - pystray
   - pillow
   - pynput
+```
+pip install pystray
+pip install pillow
+pip install pynput
+
+```
 
 ## Script Overview
 
