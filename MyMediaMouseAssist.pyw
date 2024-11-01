@@ -48,6 +48,9 @@ class TrayStateMachine:
         elif state == "inactive":
             self.icon.icon = self.create_image("M", "#F44336")
         elif state == "media":
+            # Trigger volume bar
+            self.change_volume(0xAF) # Virtual-Key code for Volume Up
+            self.change_volume(0xAE) # Virtual-Key code for Volume Down
             self.icon.icon = self.create_image("M", "#2196F3")
             self.start_idle_timer()
         self.icon.visible = True
