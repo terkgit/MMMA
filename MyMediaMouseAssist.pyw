@@ -1,3 +1,10 @@
+# MyMediaMouseAssist v1.0.0
+#      _____     ____
+#    /      \  |  o | 
+#   | Terkel |/ ___\| 
+#   |_________/     
+#   |_|_| |_|_|
+
 import pystray
 from PIL import Image, ImageDraw, ImageFont
 from threading import Thread, Event, Timer
