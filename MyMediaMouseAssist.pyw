@@ -1,4 +1,4 @@
-# MyMediaMouseAssist v1.0.0
+# MyMediaMouseAssist v1.1.0
 #      _____     ____
 #    /      \  |  o | 
 #   | Terkel |/ ___\| 
@@ -19,8 +19,11 @@ class TrayStateMachine:
     def __init__(self):
         # Initial state
         self.state = "active"
+        self.press_time = None  # To track the press time for middle click
         # Timer to handle idle timeout for media state
         self.idle_timer = None
+        # Timer for triggering the volume bar in pre_media state
+        self.pre_media_timer = None
         # Create the tray icon
         self.icon = pystray.Icon("Tray Application")
         self.icon.icon = self.create_image("M", "#4CAF50")  # Initial state set to active with "M"
@@ -52,12 +55,13 @@ class TrayStateMachine:
         if state == "active":
             self.icon.icon = self.create_image("M", "#4CAF50")
             self.cancel_idle_timer()
+            self.cancel_pre_media_timer()
         elif state == "inactive":
             self.icon.icon = self.create_image("M", "#F44336")
+        elif state == "pre_media":
+            self.icon.icon = self.create_image("M", "#4CAF50")  # Same color as idle
+            self.start_pre_media_timer()
         elif state == "media":
-            # Trigger volume bar
-            self.change_volume(0xAF) # Virtual-Key code for Volume Up
-            self.change_volume(0xAE) # Virtual-Key code for Volume Down
             self.icon.icon = self.create_image("M", "#2196F3")
             self.start_idle_timer()
         self.icon.visible = True
@@ -69,17 +73,26 @@ class TrayStateMachine:
             self.set_state("active")
 
     def media_state(self):
-        if self.state == "active":  # Only activate media state if in active state
+        if self.state == "pre_media":  # Transition from pre_media to media
             self.set_state("media")
-            self.start_idle_timer()
 
     def exit_app(self, icon, item):
         self.icon.stop()
         terminate_event.set()  # Signal to terminate
 
     def on_clicked(self, x, y, button, pressed):
-        if button == mouse.Button.middle and pressed:
-            self.media_state()
+        if button == mouse.Button.middle:
+            if pressed:
+                self.press_time = time.time()
+                self.set_state("pre_media")  # Transition to pre_media on middle press
+            else:
+                if self.state == "pre_media":
+                    hold_time = time.time() - self.press_time
+                    if hold_time >= 0.5:  # If held for 0.5 seconds or more
+                        self.media_state()
+                    else:
+                        self.set_state("active")  # Return to active if held for less than 0.5 seconds
+                self.press_time = None
 
     def on_scroll(self, x, y, dx, dy):
         # Only control volume in media state
@@ -96,6 +109,11 @@ class TrayStateMachine:
         ctypes.windll.user32.keybd_event(key_code, 0, 2, 0)
         self.start_idle_timer()
 
+    def trigger_volume_bar(self):
+        # Simulate volume up and then volume down to trigger the system volume bar
+        self.change_volume(0xAF)  # Volume Up
+        self.change_volume(0xAE)  # Volume Down
+
     def start_idle_timer(self):
         self.cancel_idle_timer()
         self.idle_timer = Timer(2.0, self.return_to_active)  # Updated timeout to 2 seconds
@@ -105,6 +123,16 @@ class TrayStateMachine:
         if self.idle_timer:
             self.idle_timer.cancel()
             self.idle_timer = None
+
+    def start_pre_media_timer(self):
+        self.cancel_pre_media_timer()
+        self.pre_media_timer = Timer(0.5, self.trigger_volume_bar)
+        self.pre_media_timer.start()
+
+    def cancel_pre_media_timer(self):
+        if self.pre_media_timer:
+            self.pre_media_timer.cancel()
+            self.pre_media_timer = None
 
     def return_to_active(self):
         if self.state == "media":
