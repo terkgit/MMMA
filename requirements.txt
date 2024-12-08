@@ -1,0 +1,7 @@
+pystray
+pillow
+pynput
+pycaw
+comtypes
+tkinter
+pyautogui

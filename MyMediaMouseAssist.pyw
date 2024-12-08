@@ -11,9 +11,12 @@ from threading import Thread, Event, Timer
 import time
 from pynput import mouse
 import ctypes
+import pyautogui
 
 # Event to signal termination
 terminate_event = Event()
+
+
 
 class TrayStateMachine:
     def __init__(self):
@@ -31,10 +34,21 @@ class TrayStateMachine:
             pystray.MenuItem('Toggle State', self.toggle_state),
             pystray.MenuItem('Exit', self.exit_app)
         )
+        # Get screen size
+        self.screen_width, self.screen_height = pyautogui.size()
         # Set the global mouse listener
         self.listener = mouse.Listener(on_click=self.on_clicked, on_scroll=self.on_scroll)
         self.listener.start()
-
+    
+    def in_corner(self, x, y): 
+        screen_width, screen_height =  self.screen_width, self.screen_height
+        margin = 10 
+        in_top_left_corner = (0 <= x <= margin and 0 <= y <= margin) 
+        in_top_right_corner = (screen_width - margin <= x <= screen_width and 0 <= y <= margin) 
+        in_bottom_left_corner = (0 <= x <= margin and screen_height - margin <= y <= screen_height) 
+        in_bottom_right_corner = (screen_width - margin <= x <= screen_width and screen_height - margin <= y <= screen_height) 
+        return in_top_left_corner or in_top_right_corner or in_bottom_left_corner or in_bottom_right_corner
+    
     def create_image(self, text, color):
         # Create an image with the specified text and background color
         image = Image.new('RGB', (64, 64), color)
@@ -96,7 +110,7 @@ class TrayStateMachine:
 
     def on_scroll(self, x, y, dx, dy):
         # Only control volume in media state
-        if self.state == "media":
+        if self.state == "media" or self.in_corner(x,y):
             if dy > 0:
                 self.change_volume(0xAF) # Virtual-Key code for Volume Up
             elif dy < 0:
